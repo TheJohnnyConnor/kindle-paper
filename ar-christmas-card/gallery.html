@@ -3,73 +3,122 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>The Byrdes — Watch the Clips</title>
+<title>The Byrdes — A Living Christmas Card</title>
 <style>
   html, body { margin: 0; padding: 0; font-family: Georgia, 'Times New Roman', serif;
     background: radial-gradient(circle at 50% 0%, #14382e 0%, #0b1e1a 60%);
-    color: #f5efe0; min-height: 100%; }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 18px 40px; box-sizing: border-box; }
-  h1 { font-size: 26px; margin: 0 0 6px; font-weight: normal; text-align: center; letter-spacing: 0.5px; }
-  h1 .red { color: #d94f3d; }
-  .sub { text-align: center; font-size: 15px; line-height: 1.5; opacity: 0.85; margin: 0 0 22px; }
-  #loadLine { text-align: center; font-size: 14px; opacity: 0.7; margin: 0 0 18px; }
-  .grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
-  @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
-  figure { margin: 0; }
-  .frame { position: relative; border-radius: 10px; overflow: hidden;
-    border: 1px solid rgba(232, 201, 122, 0.45); box-shadow: 0 4px 18px rgba(0,0,0,0.45);
-    background: #000; cursor: pointer; aspect-ratio: 16 / 9; }
-  .frame video { width: 100%; height: 100%; display: block; object-fit: cover; }
-  .badge {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    pointer-events: none; font-size: 44px; color: rgba(245, 239, 224, 0.92);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: opacity 0.2s;
+    color: #1e1e1e; min-height: 100%; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 22px 14px 40px; box-sizing: border-box; }
+  /* The card itself, matching the printed card */
+  .card {
+    background: #fdfbf3; border: 1.2px solid #0b3c2e; outline: 0.4px solid #b08d3c;
+    outline-offset: 3px; padding: 20px 14px 18px; box-sizing: border-box;
   }
-  .frame.playing .badge { opacity: 0; }
-  figcaption { font-size: 15px; text-align: center; padding-top: 8px; opacity: 0.9; }
-  .frame.playing + figcaption { color: #e8c97a; }
-  .back { text-align: center; margin-top: 30px; font-size: 15px; }
+  .card h1 { font-size: 30px; margin: 0; font-weight: bold; text-align: center; color: #0b3c2e; letter-spacing: 0.5px; }
+  .card .subtitle { text-align: center; color: #b23a2e; font-size: 13px;
+    letter-spacing: 4px; margin: 4px 0 16px; }
+  #loadLine { text-align: center; font-size: 13px; color: #6e6e6e; margin: 0 0 14px; font-style: italic; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 6px; }
+  figure { margin: 0; }
+  .photo { position: relative; border: 0.4px solid #b08d3c; background: #000;
+    cursor: pointer; aspect-ratio: 16 / 9; overflow: hidden; }
+  .photo video { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .photo .tap {
+    position: absolute; right: 6px; bottom: 6px; width: 30px; height: 30px;
+    border-radius: 50%; background: rgba(0,0,0,0.55); color: #f5efe0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; pointer-events: none; }
+  figcaption { font-size: 11px; font-style: italic; text-align: center; color: #1e1e1e; padding: 4px 0 6px; }
+  figcaption.red { color: #b23a2e; font-style: normal; font-weight: bold; }
+  .qr-cell { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; }
+  .qr-cell img { height: 100%; max-width: 100%; }
+  .card .footer { text-align: center; margin-top: 14px; }
+  .card .footer .merry { color: #0b3c2e; font-size: 15px; margin: 0 0 3px; }
+  .card .footer .note { color: #6e6e6e; font-size: 12px; font-style: italic; margin: 0; }
+  .back { text-align: center; margin-top: 22px; font-size: 15px; }
   .back a { color: #e8c97a; }
+  /* Expanded video lightbox */
+  #lightbox {
+    position: fixed; inset: 0; z-index: 20; display: none;
+    background: rgba(5, 15, 12, 0.94);
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 18px; box-sizing: border-box;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox video { width: 100%; max-width: 860px; aspect-ratio: 16 / 9;
+    background: #000; border: 1px solid rgba(232, 201, 122, 0.5); }
+  #lbCaption { color: #f5efe0; font-size: 16px; font-style: italic; margin: 12px 0 0; text-align: center; }
+  #lbClose {
+    position: absolute; top: 14px; right: 16px; background: none; border: none;
+    color: #f5efe0; font-size: 30px; cursor: pointer; line-height: 1; padding: 6px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>The Byrdes<br><span class="red">A Living Christmas Card</span></h1>
-  <p class="sub">Tap a photo to watch its scene &mdash; no camera needed.</p>
-  <p id="loadLine">Loading the clips&hellip;</p>
+  <div class="card">
+    <h1>The Byrdes</h1>
+    <p class="subtitle">A&nbsp; LIVING&nbsp; CHRISTMAS&nbsp; CARD</p>
+    <p id="loadLine">Loading the clips&hellip;</p>
 
-  <div class="grid" id="grid">
-    <figure>
-      <div class="frame" data-i="0"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
-      <figcaption>Marty and the bank</figcaption>
-    </figure>
-    <figure>
-      <div class="frame" data-i="1"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
-      <figcaption>Couples therapy</figcaption>
-    </figure>
-    <figure>
-      <div class="frame" data-i="2"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
-      <figcaption>Jonah&rsquo;s new business</figcaption>
-    </figure>
-    <figure>
-      <div class="frame" data-i="3"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
-      <figcaption>Ben has questions</figcaption>
-    </figure>
-    <figure>
-      <div class="frame" data-i="4"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
-      <figcaption>Breakfast at the lake house</figcaption>
-    </figure>
+    <div class="grid">
+      <figure>
+        <div class="photo" data-i="0"><video playsinline loop preload="auto" muted></video><div class="tap">&#9654;</div></div>
+        <figcaption>Marty and the bank</figcaption>
+      </figure>
+      <figure>
+        <div class="photo" data-i="1"><video playsinline loop preload="auto" muted></video><div class="tap">&#9654;</div></div>
+        <figcaption>Couples therapy</figcaption>
+      </figure>
+      <figure>
+        <div class="photo" data-i="2"><video playsinline loop preload="auto" muted></video><div class="tap">&#9654;</div></div>
+        <figcaption>Jonah&rsquo;s new business</figcaption>
+      </figure>
+      <figure>
+        <div class="photo" data-i="3"><video playsinline loop preload="auto" muted></video><div class="tap">&#9654;</div></div>
+        <figcaption>Ben has questions</figcaption>
+      </figure>
+      <figure>
+        <div class="photo" data-i="4"><video playsinline loop preload="auto" muted></video><div class="tap">&#9654;</div></div>
+        <figcaption>Breakfast at the lake house</figcaption>
+      </figure>
+      <figure>
+        <a class="qr-cell" href="index.html"><img src="qr.svg" alt="QR code — open the camera version"></a>
+        <figcaption class="red">Scan me, then point at a photo</figcaption>
+      </figure>
+    </div>
+
+    <div class="footer">
+      <p class="merry">Merry Christmas from the Lake of the Ozarks</p>
+      <p class="note">Each photo plays its own scene. Tap a photo to watch it.</p>
+    </div>
   </div>
 
   <p class="back"><a href="index.html">Point your camera at the printed card instead &rarr;</a></p>
 </div>
 
+<div id="lightbox">
+  <button id="lbClose" aria-label="Close">&times;</button>
+  <video id="lbVideo" playsinline loop controls></video>
+  <p id="lbCaption"></p>
+</div>
+
 <script>
 (function () {
   var videoFiles = ['01-bank.mp4', '02-therapy.mp4', '03-jonah.mp4', '04-ben.mp4', '05-breakfast.mp4'];
-  var frames = Array.prototype.slice.call(document.querySelectorAll('.frame'));
-  var videos = frames.map(function (f) { return f.querySelector('video'); });
+  var titles = [
+    'Marty and the bank',
+    'Couples therapy',
+    'Jonah\u2019s new business',
+    'Ben has questions',
+    'Breakfast at the lake house'
+  ];
+  var photos = Array.prototype.slice.call(document.querySelectorAll('.photo'));
+  var videos = photos.map(function (p) { return p.querySelector('video'); });
+  var clipUrls = [null, null, null, null, null];
   var loadLine = document.getElementById('loadLine');
+  var lightbox = document.getElementById('lightbox');
+  var lbVideo = document.getElementById('lbVideo');
+  var lbCaption = document.getElementById('lbCaption');
 
   // Clips are stored as base64 text (.b64) and decoded here, same as the AR page.
   async function fetchB64Blob(url, mime) {
@@ -87,28 +136,37 @@
       for (var i = 0; i < videos.length; i++) {
         loadLine.textContent = 'Loading clip ' + (i + 1) + ' of ' + videos.length + '\u2026';
         var vb = await fetchB64Blob('./videos/' + videoFiles[i] + '.b64', 'video/mp4');
-        videos[i].src = URL.createObjectURL(vb);
+        clipUrls[i] = URL.createObjectURL(vb);
+        videos[i].src = clipUrls[i];
         videos[i].load();
       }
-      loadLine.textContent = 'Tap a photo to play its scene.';
+      loadLine.textContent = 'Tap a photo to watch its scene.';
     } catch (err) {
       loadLine.textContent = 'Could not load the clips — check your connection and reload.';
     }
   }
 
-  frames.forEach(function (frame, i) {
-    var video = videos[i];
-    frame.addEventListener('click', function () {
-      if (!video.src) return;
-      if (video.paused) {
-        videos.forEach(function (v, j) { if (j !== i) v.pause(); });
-        video.play().catch(function () {});
-      } else {
-        video.pause();
-      }
-    });
-    video.addEventListener('play', function () { frame.classList.add('playing'); });
-    video.addEventListener('pause', function () { frame.classList.remove('playing'); });
+  function openClip(i) {
+    if (!clipUrls[i]) return;
+    lbVideo.src = clipUrls[i];
+    lbCaption.textContent = titles[i];
+    lightbox.classList.add('open');
+    lbVideo.play().catch(function () {});
+  }
+
+  function closeClip() {
+    lbVideo.pause();
+    lbVideo.removeAttribute('src');
+    lbVideo.load();
+    lightbox.classList.remove('open');
+  }
+
+  photos.forEach(function (photo, i) {
+    photo.addEventListener('click', function () { openClip(i); });
+  });
+  document.getElementById('lbClose').addEventListener('click', closeClip);
+  lightbox.addEventListener('click', function (e) {
+    if (e.target === lightbox) closeClip();
   });
 
   init();
