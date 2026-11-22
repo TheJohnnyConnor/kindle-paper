@@ -56,8 +56,19 @@
 <video id="video3" class="ar-video" playsinline loop preload="auto"></video>
 <video id="video4" class="ar-video" playsinline loop preload="auto"></video>
 
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
-<script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { MindARThree } from 'mindar-image-three';
+
 (function () {
   var startBtn = document.getElementById('startBtn');
   var overlay = document.getElementById('overlay');
@@ -89,13 +100,15 @@
     errLine.style.display = 'block';
   }
 
-  function cameraErrorText(err) {
+  function cameraErrorText(err, step) {
+    var detail = (err && err.name ? err.name : 'Error') + (err && err.message ? ': ' + err.message : '');
     var name = (err && err.name) || '';
-    if (name === 'NotAllowedError') return 'Camera permission was blocked. Open this page in Safari and allow the camera when it asks.';
-    if (name === 'NotFoundError') return 'No camera was found on this device.';
-    if (name === 'NotReadableError') return 'The camera is in use by another app. Close it and try again.';
-    if (name) return 'Camera did not start (' + name + '). Try this page in Safari.';
-    return 'Camera did not start. Try this page in Safari.';
+    var hint = '';
+    if (name === 'NotAllowedError') hint = ' Camera permission was blocked — allow it and try again.';
+    else if (name === 'NotFoundError') hint = ' No camera was found on this device.';
+    else if (name === 'NotReadableError') hint = ' The camera is in use by another app — close it and try again.';
+    else hint = ' Try this page in Safari.';
+    return 'Camera did not start (' + step + ' — ' + detail + ').' + hint;
   }
 
   // The clips and the tracking file are stored as base64 text (.b64) and
@@ -140,15 +153,17 @@
     }
     startBtn.disabled = true;
     startBtn.textContent = 'Starting camera\u2026';
+    var step = 'starting';
     try {
       // Prime each video with sound after the user's tap (iOS autoplay rule).
+      step = 'warming up clips';
       for (var i = 0; i < videos.length; i++) {
         try { await videos[i].play(); videos[i].pause(); } catch (e) { /* ignore */ }
         videos[i].currentTime = 0;
       }
 
-      var THREE = (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.THREE) || window.THREE;
-      var mindarThree = new window.MINDAR.IMAGE.MindARThree({
+      step = 'setting up tracker';
+      var mindarThree = new MindARThree({
         container: document.body,
         imageTargetSrc: mindUrl,
         maxTrack: 1
@@ -175,6 +190,7 @@
         };
       });
 
+      step = 'opening camera';
       await mindarThree.start();
       overlay.style.display = 'none';
       hint.style.display = 'block';
@@ -184,7 +200,7 @@
     } catch (err) {
       startBtn.disabled = false;
       startBtn.textContent = 'Tap to start';
-      showError(cameraErrorText(err));
+      showError(cameraErrorText(err, step));
     }
   });
 
