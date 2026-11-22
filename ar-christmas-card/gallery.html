@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Byrdes — Watch the Clips</title>
+<style>
+  html, body { margin: 0; padding: 0; font-family: Georgia, 'Times New Roman', serif;
+    background: radial-gradient(circle at 50% 0%, #14382e 0%, #0b1e1a 60%);
+    color: #f5efe0; min-height: 100%; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 18px 40px; box-sizing: border-box; }
+  h1 { font-size: 26px; margin: 0 0 6px; font-weight: normal; text-align: center; letter-spacing: 0.5px; }
+  h1 .red { color: #d94f3d; }
+  .sub { text-align: center; font-size: 15px; line-height: 1.5; opacity: 0.85; margin: 0 0 22px; }
+  #loadLine { text-align: center; font-size: 14px; opacity: 0.7; margin: 0 0 18px; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 22px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } }
+  figure { margin: 0; }
+  .frame { position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid rgba(232, 201, 122, 0.45); box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+    background: #000; cursor: pointer; aspect-ratio: 16 / 9; }
+  .frame video { width: 100%; height: 100%; display: block; object-fit: cover; }
+  .badge {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    pointer-events: none; font-size: 44px; color: rgba(245, 239, 224, 0.92);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: opacity 0.2s;
+  }
+  .frame.playing .badge { opacity: 0; }
+  figcaption { font-size: 15px; text-align: center; padding-top: 8px; opacity: 0.9; }
+  .frame.playing + figcaption { color: #e8c97a; }
+  .back { text-align: center; margin-top: 30px; font-size: 15px; }
+  .back a { color: #e8c97a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Byrdes<br><span class="red">A Living Christmas Card</span></h1>
+  <p class="sub">Tap a photo to watch its scene &mdash; no camera needed.</p>
+  <p id="loadLine">Loading the clips&hellip;</p>
+
+  <div class="grid" id="grid">
+    <figure>
+      <div class="frame" data-i="0"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
+      <figcaption>Marty and the bank</figcaption>
+    </figure>
+    <figure>
+      <div class="frame" data-i="1"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
+      <figcaption>Couples therapy</figcaption>
+    </figure>
+    <figure>
+      <div class="frame" data-i="2"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
+      <figcaption>Jonah&rsquo;s new business</figcaption>
+    </figure>
+    <figure>
+      <div class="frame" data-i="3"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
+      <figcaption>Ben has questions</figcaption>
+    </figure>
+    <figure>
+      <div class="frame" data-i="4"><video playsinline loop preload="auto"></video><div class="badge">&#9654;</div></div>
+      <figcaption>Breakfast at the lake house</figcaption>
+    </figure>
+  </div>
+
+  <p class="back"><a href="index.html">Point your camera at the printed card instead &rarr;</a></p>
+</div>
+
+<script>
+(function () {
+  var videoFiles = ['01-bank.mp4', '02-therapy.mp4', '03-jonah.mp4', '04-ben.mp4', '05-breakfast.mp4'];
+  var frames = Array.prototype.slice.call(document.querySelectorAll('.frame'));
+  var videos = frames.map(function (f) { return f.querySelector('video'); });
+  var loadLine = document.getElementById('loadLine');
+
+  // Clips are stored as base64 text (.b64) and decoded here, same as the AR page.
+  async function fetchB64Blob(url, mime) {
+    var res = await fetch(url);
+    if (!res.ok) throw new Error('failed to load ' + url);
+    var text = (await res.text()).replace(/\s/g, '');
+    var bin = atob(text);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  async function init() {
+    try {
+      for (var i = 0; i < videos.length; i++) {
+        loadLine.textContent = 'Loading clip ' + (i + 1) + ' of ' + videos.length + '\u2026';
+        var vb = await fetchB64Blob('./videos/' + videoFiles[i] + '.b64', 'video/mp4');
+        videos[i].src = URL.createObjectURL(vb);
+        videos[i].load();
+      }
+      loadLine.textContent = 'Tap a photo to play its scene.';
+    } catch (err) {
+      loadLine.textContent = 'Could not load the clips — check your connection and reload.';
+    }
+  }
+
+  frames.forEach(function (frame, i) {
+    var video = videos[i];
+    frame.addEventListener('click', function () {
+      if (!video.src) return;
+      if (video.paused) {
+        videos.forEach(function (v, j) { if (j !== i) v.pause(); });
+        video.play().catch(function () {});
+      } else {
+        video.pause();
+      }
+    });
+    video.addEventListener('play', function () { frame.classList.add('playing'); });
+    video.addEventListener('pause', function () { frame.classList.remove('playing'); });
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
