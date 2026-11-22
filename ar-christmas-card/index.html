@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>The Byrdes — A Living Christmas Card</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1e1a; font-family: Georgia, 'Times New Roman', serif; }
+  #overlay {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: #f5efe0; padding: 24px; box-sizing: border-box;
+    background: radial-gradient(circle at 50% 30%, #14382e 0%, #0b1e1a 70%);
+  }
+  #overlay h1 { font-size: 28px; margin: 0 0 8px; font-weight: normal; letter-spacing: 0.5px; }
+  #overlay h1 .red { color: #d94f3d; }
+  #overlay p { font-size: 16px; line-height: 1.5; margin: 0 0 20px; max-width: 340px; opacity: 0.9; }
+  #startBtn {
+    font-family: Georgia, serif; font-size: 18px; color: #0b1e1a;
+    background: #e8c97a; border: none; border-radius: 999px; padding: 14px 34px;
+    cursor: pointer; box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+  }
+  #startBtn:disabled { opacity: 0.6; cursor: default; }
+  #startBtn:active { transform: scale(0.97); }
+  #hint {
+    position: fixed; left: 0; right: 0; bottom: 14px; z-index: 5;
+    text-align: center; color: #f5efe0; font-size: 14px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    pointer-events: none; display: none;
+  }
+  #status {
+    position: fixed; left: 0; right: 0; top: 12px; z-index: 5;
+    text-align: center; color: #f5efe0; font-size: 13px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    pointer-events: none; display: none;
+  }
+  video.ar-video { display: none; }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <h1>The Byrdes<br><span class="red">A Living Christmas Card</span></h1>
+  <p>Point your camera at any photo on the card and it comes to life. Each photo plays its own little scene.</p>
+  <button id="startBtn" disabled>Loading&hellip;</button>
+</div>
+
+<div id="status"></div>
+<div id="hint">Point at a photo on the card</div>
+
+<video id="video0" class="ar-video" playsinline loop preload="auto"></video>
+<video id="video1" class="ar-video" playsinline loop preload="auto"></video>
+<video id="video2" class="ar-video" playsinline loop preload="auto"></video>
+<video id="video3" class="ar-video" playsinline loop preload="auto"></video>
+<video id="video4" class="ar-video" playsinline loop preload="auto"></video>
+
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
+<script>
+(function () {
+  var startBtn = document.getElementById('startBtn');
+  var overlay = document.getElementById('overlay');
+  var hint = document.getElementById('hint');
+  var status = document.getElementById('status');
+  var videos = [0, 1, 2, 3, 4].map(function (i) { return document.getElementById('video' + i); });
+  var videoFiles = ['01-bank.mp4', '02-therapy.mp4', '03-jonah.mp4', '04-ben.mp4', '05-breakfast.mp4'];
+  var titles = [
+    'Marty and the bank',
+    'Couples therapy',
+    'Jonah\u2019s new business',
+    'Ben has questions',
+    'Breakfast at the lake house'
+  ];
+  var mindUrl = null;
+  var ready = false;
+
+  function showStatus(text) {
+    status.textContent = text;
+    status.style.display = 'block';
+    clearTimeout(showStatus._t);
+    showStatus._t = setTimeout(function () { status.style.display = 'none'; }, 4000);
+  }
+
+  // The clips and the tracking file are stored as base64 text (.b64) and
+  // decoded here, so the page works from plain file hosting. A file can be
+  // split into numbered parts; pass each part's URL in order.
+  async function fetchB64Blob(urls, mime) {
+    var text = '';
+    for (var u = 0; u < urls.length; u++) {
+      var res = await fetch(urls[u]);
+      if (!res.ok) throw new Error('failed to load ' + urls[u]);
+      text += (await res.text()).replace(/\s/g, '');
+    }
+    var bin = atob(text);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
+  async function init() {
+    try {
+      var mindBlob = await fetchB64Blob(['./targets.mind.b64.part1', './targets.mind.b64.part2'], 'application/octet-stream');
+      mindUrl = URL.createObjectURL(mindBlob);
+      for (var i = 0; i < videos.length; i++) {
+        var vb = await fetchB64Blob(['./videos/' + videoFiles[i] + '.b64'], 'video/mp4');
+        videos[i].src = URL.createObjectURL(vb);
+        videos[i].load();
+      }
+      ready = true;
+      startBtn.disabled = false;
+      startBtn.textContent = 'Tap to start';
+    } catch (err) {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Tap to start';
+      showStatus('Could not load the card files — check your connection and reload.');
+    }
+  }
+
+  startBtn.addEventListener('click', async function () {
+    if (!ready || !mindUrl) {
+      showStatus('Still loading the card files — one moment.');
+      return;
+    }
+    startBtn.disabled = true;
+    startBtn.textContent = 'Starting camera\u2026';
+    try {
+      // Prime each video with sound after the user's tap (iOS autoplay rule).
+      for (var i = 0; i < videos.length; i++) {
+        try { await videos[i].play(); videos[i].pause(); } catch (e) { /* ignore */ }
+        videos[i].currentTime = 0;
+      }
+
+      var THREE = (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.THREE) || window.THREE;
+      var mindarThree = new window.MINDAR.IMAGE.MindARThree({
+        container: document.body,
+        imageTargetSrc: mindUrl,
+        maxTrack: 1
+      });
+      var renderer = mindarThree.renderer;
+      var scene = mindarThree.scene;
+      var camera = mindarThree.camera;
+
+      videos.forEach(function (video, i) {
+        var anchor = mindarThree.addAnchor(i);
+        var texture = new THREE.VideoTexture(video);
+        var plane = new THREE.Mesh(
+          new THREE.PlaneGeometry(1, 0.5625),
+          new THREE.MeshBasicMaterial({ map: texture })
+        );
+        anchor.group.add(plane);
+        anchor.onTargetFound = function () {
+          video.currentTime = 0;
+          video.play().catch(function () {});
+          showStatus('\u25B6 ' + titles[i]);
+        };
+        anchor.onTargetLost = function () {
+          video.pause();
+        };
+      });
+
+      await mindarThree.start();
+      overlay.style.display = 'none';
+      hint.style.display = 'block';
+      renderer.setAnimationLoop(function () {
+        renderer.render(scene, camera);
+      });
+    } catch (err) {
+      startBtn.disabled = false;
+      startBtn.textContent = 'Tap to start';
+      showStatus('Camera didn\u2019t start — check camera permission and try again.');
+    }
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>
