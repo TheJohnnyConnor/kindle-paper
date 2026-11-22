@@ -22,6 +22,8 @@
   }
   #startBtn:disabled { opacity: 0.6; cursor: default; }
   #startBtn:active { transform: scale(0.97); }
+  #errLine { color: #ff9d8a; font-size: 14px; line-height: 1.4; margin: 14px 0 0; max-width: 340px; display: none; }
+  .tip { font-size: 13px; opacity: 0.7; margin: 14px 0 0; }
   #hint {
     position: fixed; left: 0; right: 0; bottom: 14px; z-index: 5;
     text-align: center; color: #f5efe0; font-size: 14px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
@@ -41,6 +43,8 @@
   <h1>The Byrdes<br><span class="red">A Living Christmas Card</span></h1>
   <p>Point your camera at any photo on the card and it comes to life. Each photo plays its own little scene.</p>
   <button id="startBtn" disabled>Loading&hellip;</button>
+  <p id="errLine"></p>
+  <p class="tip">Tip: for the camera, open this page in Safari.</p>
 </div>
 
 <div id="status"></div>
@@ -59,6 +63,7 @@
   var overlay = document.getElementById('overlay');
   var hint = document.getElementById('hint');
   var status = document.getElementById('status');
+  var errLine = document.getElementById('errLine');
   var videos = [0, 1, 2, 3, 4].map(function (i) { return document.getElementById('video' + i); });
   var videoFiles = ['01-bank.mp4', '02-therapy.mp4', '03-jonah.mp4', '04-ben.mp4', '05-breakfast.mp4'];
   var titles = [
@@ -76,6 +81,21 @@
     status.style.display = 'block';
     clearTimeout(showStatus._t);
     showStatus._t = setTimeout(function () { status.style.display = 'none'; }, 4000);
+  }
+
+  // Errors stay visible so the cause can be read and reported.
+  function showError(text) {
+    errLine.textContent = text;
+    errLine.style.display = 'block';
+  }
+
+  function cameraErrorText(err) {
+    var name = (err && err.name) || '';
+    if (name === 'NotAllowedError') return 'Camera permission was blocked. Open this page in Safari and allow the camera when it asks.';
+    if (name === 'NotFoundError') return 'No camera was found on this device.';
+    if (name === 'NotReadableError') return 'The camera is in use by another app. Close it and try again.';
+    if (name) return 'Camera did not start (' + name + '). Try this page in Safari.';
+    return 'Camera did not start. Try this page in Safari.';
   }
 
   // The clips and the tracking file are stored as base64 text (.b64) and
@@ -109,7 +129,7 @@
     } catch (err) {
       startBtn.disabled = false;
       startBtn.textContent = 'Tap to start';
-      showStatus('Could not load the card files — check your connection and reload.');
+      showError('Could not load the card files — check your connection and reload.');
     }
   }
 
@@ -164,7 +184,7 @@
     } catch (err) {
       startBtn.disabled = false;
       startBtn.textContent = 'Tap to start';
-      showStatus('Camera didn\u2019t start — check camera permission and try again.');
+      showError(cameraErrorText(err));
     }
   });
 
