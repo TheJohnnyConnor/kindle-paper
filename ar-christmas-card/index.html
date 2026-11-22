@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>The Byrdes — A Living Christmas Card</title>
 <style>
-  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1e1a; font-family: Georgia, 'Times New Roman', serif; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: Georgia, 'Times New Roman', serif; }
+  /* No background on the page itself: MindAR's camera video sits at
+     z-index -2, so any opaque body background would paint over the
+     live feed and leave the clip floating on a dark void. */
   #overlay {
     position: fixed; inset: 0; z-index: 10;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
